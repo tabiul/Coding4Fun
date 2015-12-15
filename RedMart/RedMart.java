@@ -4,124 +4,152 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * @author tabiul <tabiul@gmail.com>
  */
 public class RedMart {
-    Map<String, List<List<Integer>>> memo = new HashMap<>();
 
-    public List<Integer> calc(int[][] map) {
-        int maxSize = 0;
+    public static class Data {
+        private int length;
+        private int drop;
+
+        public int getLength() {
+            return length;
+        }
+
+        public void setLength(int length) {
+            this.length = length;
+        }
+
+        public int getDrop() {
+            return drop;
+        }
+
+        public void setDrop(int drop) {
+            this.drop = drop;
+        }
+
+        @Override
+        public String toString() {
+            return "Data{" +
+                "length=" + length +
+                ", drop=" + drop +
+                '}';
+        }
+    }
+
+    Map<String, Data> memo = new HashMap<>();
+
+    public Data calc(int[][] map) {
+        int maxLength = 0;
         int maxDrop = 0;
-        List<Integer> sol = new ArrayList<>();
+        Data sol = null;
 
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[i].length; j++) {
-                List<List<Integer>> paths = traverse(i, j, map);
-                //find the max path and highest drop
-                for (List<Integer> p : paths) {
-                    //System.out.println("path: " + p);
-                    if (p.size() > maxSize) {
-                        maxSize = p.size();
-                        sol = p;
-                    } else if (p.size() == maxSize) {
-                        int diff = p.get(0) - p.get(p.size() - 1);
-                        if (diff > maxDrop) {
-                            maxDrop = diff;
-                            sol = p;
-                        }
+                Data data = traverse(i, j, map);
+                if (data.getLength() > maxLength) {
+                    sol = data;
+                    maxLength = data.length;
+                } else if (data.getLength() == maxLength) {
+                    if (data.getDrop() > maxDrop) {
+                        sol = data;
                     }
                 }
             }
         }
-
         return sol;
     }
 
-    private List<List<Integer>> traverse(int i, int j, int[][] map) {
-        List<List<Integer>> result = new ArrayList<>();
+    private Data traverse(int i, int j, int[][] map) {
         if (memo.containsKey(i + "#" + j)) {
             return memo.get(i + "#" + j);
         }
-        boolean hasPath = false;
+        Data data = new Data();
+        int maxDrop = 0;
+        int maxLength = 0;
+
         //go right
         if (j != map[i].length - 1 && map[i][j + 1] < map[i][j]) {
-            hasPath = true;
-            List<List<Integer>> paths = null;
+            Data temp = null;
             if (memo.containsKey(i + "#" + (j + 1))) {
-                paths = memo.get(i + "#" + (j + 1));
+                temp = memo.get(i + "#" + (j + 1));
             } else {
-                paths = traverse(i, j + 1, map);
-                memo.put(i + "#" + (j + 1), paths);
+                temp = traverse(i, j + 1, map);
+                memo.put(i + "#" + (j + 1), temp);
             }
-            for (List<Integer> p : paths) {
-                List<Integer> temp = new ArrayList<>(p);
-                temp.add(0, map[i][j]);
-                result.add(temp);
+            if (temp.length > maxLength) {
+                maxLength = temp.getLength();
+                maxDrop = temp.getDrop() + map[i][j] - map[i][j + 1];
+            } else if (temp.length == maxLength) {
+                int drop = temp.getDrop() + map[i][j] - map[i][j + 1];
+                if(drop > maxDrop) maxDrop = drop;
+
             }
         }
+
         //go left
         if (j != 0 && map[i][j - 1] < map[i][j]) {
-            hasPath = true;
-            List<List<Integer>> paths = null;
+            Data temp = null;
             if (memo.containsKey(i + "#" + (j - 1))) {
-                paths = memo.get(i + "#" + (j - 1));
+                temp =  memo.get(i + "#" + (j - 1));
             } else {
-                paths = traverse(i, j - 1, map);
-                memo.put(i + "#" + (j - 1), paths);
+                temp = traverse(i, j - 1, map);
+                memo.put(i + "#" + (j - 1), temp);
             }
-            for (List<Integer> p : paths) {
-                List<Integer> temp = new ArrayList<>(p);
-                temp.add(0, map[i][j]);
-                result.add(temp);
+            if (temp.length > maxLength) {
+                maxLength = temp.getLength();
+                maxDrop = temp.getDrop() + map[i][j] - map[i][j - 1];
+            } else if (temp.length == maxLength) {
+                int drop = temp.getDrop() + map[i][j] - map[i][j - 1];
+                if(drop > maxDrop) maxDrop = drop;
             }
         }
 
         //go up
         if (i != 0 && map[i - 1][j] < map[i][j]) {
-            hasPath = true;
-            List<List<Integer>> paths = null;
+            Data temp = null;
             if (memo.containsKey((i - 1) + "#" + j)) {
-                paths = memo.get((i - 1) + "#" + j);
+                temp =  memo.get((i - 1) + "#" + j);
             } else {
-                paths = traverse(i - 1, j, map);
-                memo.put((i - 1) + "#" + j, paths);
+                temp = traverse((i - 1), j, map);
+                memo.put((i - 1) + "#" + j, temp);
             }
-            for (List<Integer> p : paths) {
-                List<Integer> temp = new ArrayList<>(p);
-                temp.add(0, map[i][j]);
-                result.add(temp);
+            if (temp.length > maxLength) {
+                maxLength = temp.getLength();
+                maxDrop = temp.getDrop() + map[i][j] - map[i - 1][j];
+            } else if (temp.length == maxLength) {
+                int drop = temp.getDrop() + map[i][j] - map[i - 1][j];
+                if(drop > maxDrop) maxDrop = drop;
+
             }
         }
+
         //go down
         if (i != map.length - 1 && map[i + 1][j] < map[i][j]) {
-            hasPath = true;
-            List<List<Integer>> paths = null;
+            Data temp = null;
             if (memo.containsKey((i + 1) + "#" + j)) {
-                paths = memo.get((i + 1) + "#" + j);
+                temp =  memo.get((i + 1) + "#" + j);
             } else {
-                paths = traverse(i + 1, j, map);
-                memo.put((i + 1) + "#" + j, paths);
+                temp = traverse((i + 1), j, map);
+                memo.put((i + 1) + "#" + j, temp);
             }
-            for (List<Integer> p : paths) {
-                List<Integer> temp = new ArrayList<>(p);
-                temp.add(0, map[i][j]);
-                result.add(temp);
+            if (temp.length > maxLength) {
+                maxLength = temp.getLength();
+                maxDrop = temp.getDrop() + map[i][j] - map[i + 1][j];
+            } else if (temp.length == maxLength) {
+                int drop = temp.getDrop() + map[i][j] - map[i + 1][j];
+                if(drop > maxDrop) maxDrop = drop;
+
             }
         }
-        if (!hasPath) {
-            List<Integer> p = new ArrayList<>();
-            p.add(map[i][j]);
-            result.add(p);
-        }
-        memo.put(i + "#" + j, result);
-        return result;
+        data.setLength(maxLength + 1);
+        data.setDrop(maxDrop);
+        memo.put(i + "#" + j, data);
+        return data;
     }
 
     public static void main(String args[]) {
@@ -149,9 +177,8 @@ public class RedMart {
                     counter++;
                 }
             }
-            List<Integer> sol = redMart.calc(map);
-            System.out.printf("length : %d , drop %d ", sol.size(), sol.get(0) - sol
-                .get(sol.size() - 1));
+            Data data = redMart.calc(map);
+            System.out.printf("length : %d , drop %d ", data.getLength(), data.getDrop());
         } catch (IOException ex) {
             ex.printStackTrace();
         }
